@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sistema de Pedido Completo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
+    .container { background: #fff; padding: 20px; border-radius: 8px; max-width: 700px; margin: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h2 { color: #007bff; margin-top: 20px; }
+    label { display: block; font-weight: bold; margin-top: 10px; }
+    input, select, textarea, button {
+      width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc;
+      border-radius: 4px; box-sizing: border-box; font-size: 14px;
+    }
+    button { background: #007bff; color: #fff; border: none; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .btn-danger { background: #dc3545; }
+    .hidden { display: none !important; }
+    .produto-item, .pedido {
+      background: #f9f9f9; padding: 10px; border-left: 4px solid #007bff;
+      margin-bottom: 10px; border-radius: 4px; white-space: pre-wrap;
+    }
+    .botoes { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .botoes button { flex: 1; font-size: 13px; padding: 6px; }
+    .flex-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .flex-row > * {
+#produtoBuscaContainer {
+  position: relative;
+}
+#produtoSugestoes {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-top: none;
+  max-height: 150px;
+  overflow-y: auto;
+  z-index: 10;
+}
+#produtoSugestoes div {
+  padding: 8px;
+  cursor: pointer;
+}
+#produtoSugestoes div:hover {
+  background: #eee;
+}
+
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <!-- CLIENTE -->
+  <h2>Cliente</h2>
+  <div id="clienteForm" class="hidden">
+    <label>Nome do Cliente:</label>
+    <input id="inputClienteNome" placeholder="Ex: João da Silva" />
+    <label>CNPJ:</label>
+    <input id="inputClienteCNPJ" placeholder="00.000.000/0001-00" />
+    <button onclick="salvarCliente()">Salvar Cliente</button>
+    <button onclick="voltarSelecaoCliente()" class="btn-danger">Cancelar</button>
+  </div>
+  <div id="clienteSel" class="flex-row">
+    <button onclick="mostrarFormCliente()" style="flex:none; width: 130px;">+ Novo Cliente</button>
+    <select id="clienteSelect"></select>
+    <button onclick="excluirClienteMinimalista()" title="Excluir Cliente" class="btn-danger" style="flex:none; width: 32px; font-weight:bold; font-size:18px;">×</button>
+  </div>
+
+  <!-- REMESSA -->
+  <h2>Remessa</h2>
+  <div id="remessaForm" class="hidden">
+    <label>Nome da Remessa:</label>
+    <input id="inputRemessaNome" placeholder="Ex: Depósito Sul" />
+    <label>CNPJ:</label>
+    <input id="inputRemessaCNPJ" placeholder="00.000.000/0001-00" />
+    <button onclick="salvarRemessa()">Salvar Remessa</button>
+    <button onclick="voltarSelecaoRemessa()" class="btn-danger">Cancelar</button>
+  </div>
+  <div id="remessaSel" class="flex-row">
+    <button onclick="mostrarFormRemessa()" style="flex:none; width: 130px;">+ Nova Remessa</button>
+    <select id="remessaSelect"></select>
+    <button onclick="excluirRemessaMinimalista()" title="Excluir Remessa" class="btn-danger" style="flex:none; width: 32px; font-weight:bold; font-size:18px;">×</button>
+  </div>
+
+  <!-- PRAZO -->
+  <h2>Prazo</h2>
+  <label>Prazo de Pagamento:</label>
+  <input id="prazoPagamento" placeholder="Ex: 30 dias, À vista" />
+
+  <!-- PRODUTOS -->
+  <h2>Produtos</h2>
+  <div id="produtoForm" class="hidden">
+    <label>Nome do Produto:</label>
+    <input id="inputProdutoNome" placeholder="Ex: Produto A" />
+    <button onclick="salvarProduto()">Salvar Produto</button>
+    <button onclick="voltarSelecaoProduto()" class="btn-danger">Cancelar</button>
+  </div>
+  <<div id="produtoSel">
+  <div class="flex-row">
+    <button onclick="mostrarFormProduto()" style="flex:none; width: 130px;">+ Novo Produto</button>
+    <select id="produtoSelect"></select>
+    <button onclick="excluirProdutoMinimalista()" title="Excluir Produto" class="btn-danger" style="flex:none; width: 32px; font-weight:bold; font-size:18px;">×</button>
+  </div>
+  <div id="produtoBuscaContainer">
+    <input id="produtoBusca" placeholder="🔍 Buscar produto..." oninput="buscarProduto()" />
+    <div id="produtoSugestoes" class="hidden"></div>
+  </div>
+</div>
+
+
+  <!-- PRODUTOS NO PEDIDO -->
+  <h2>Produtos no Pedido</h2>
+  <label>Peso (KG):</label>
+  <input id="kgProduto" type="number" step="any" min="0" />
+  <label>Preço por KG (R$):</label>
+  <input id="precoProduto" type="number" step="0.01" min="0" />
+  <label>Observações (opcional):</label>
+  <textarea id="obsProduto" rows="2"></textarea>
+  <button onclick="adicionarProduto()">➕ Adicionar Produto</button>
+  <div id="produtosCorrente"></div>
+
+  <!-- AÇÕES -->
+  <h2>Ações</h2>
+  <button onclick="salvarPedido()">💾 Salvar Pedido</button>
+  <button onclick="limparPedidoAtual()" class="btn-danger">🧹 Limpar Pedido Atual</button>
+
+  <!-- HISTÓRICO -->
+  <h2>Histórico de Pedidos</h2>
+  <div id="historicoPedidos"></div>
+</div>
+
+<script>
+  // Gera ID único simples
+  function gerarId() {
+    return Date.now().toString() + Math.floor(Math.random() * 1000);
+  }
+
+  // --- PRODUTOS CADASTRADOS ---
+  function mostrarFormProduto() {
+    document.getElementById('produtoForm').classList.remove('hidden');
+    document.getElementById('produtoSel').classList.add('hidden');
+  }
+
+  function voltarSelecaoProduto() {
+    document.getElementById('inputProdutoNome').value = '';
+    document.getElementById('produtoForm').classList.add('hidden');
+    document.getElementById('produtoSel').classList.remove('hidden');
+  }
+
+  function salvarProduto() {
+    const nome = document.getElementById('inputProdutoNome').value.trim();
+    if (!nome) return alert('Preencha o nome do produto.');
+    let arr = JSON.parse(localStorage.getItem('produtosCadastrados') || '[]');
+    // Evitar duplicidade de produtos
+    if (arr.some(p => p.nome.toLowerCase() === nome.toLowerCase())) {
+      alert('Produto já cadastrado. Escolha um nome diferente.');
+      return;
+    }
+    arr.push({ id: gerarId(), nome });
+    localStorage.setItem('produtosCadastrados', JSON.stringify(arr));
+    carregarProdutos(arr[arr.length - 1].id);
+    voltarSelecaoProduto();
+  }
+
+  function excluirProdutoMinimalista() {
+    const sel = document.getElementById('produtoSelect');
+    const id = sel.value;
+    if (!id) return alert('Selecione um produto para excluir.');
+    if (!confirm('Tem certeza que deseja excluir este produto?')) {
+      return;
+    }
+    let arr = JSON.parse(localStorage.getItem('produtosCadastrados') || '[]');
+    arr = arr.filter(p => p.id !== id);
+    localStorage.setItem('produtosCadastrados', JSON.stringify(arr));
+    carregarProdutos();
+    alert('Produto excluído com sucesso!');
+  }
+
+  function carregarProdutos(sel = '') {
+    const selEl = document.getElementById('produtoSelect');
+    selEl.innerHTML = '<option value="">-- Selecione Produto --</option>';
+    const produtos = JSON.parse(localStorage.getItem('produtosCadastrados') || '[]');
+    produtos.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id;
+      o.textContent = p.nome;
+      selEl.appendChild(o);
+    });
+    if (sel) selEl.value = sel;
+  }
+
+  // --- CLIENTE ---
+  function mostrarFormCliente() {
+    document.getElementById('clienteForm').classList.remove('hidden');
+    document.getElementById('clienteSel').classList.add('hidden');
+  }
+  function voltarSelecaoCliente() {
+    document.getElementById('inputClienteNome').value = '';
+    document.getElementById('inputClienteCNPJ').value = '';
+    document.getElementById('clienteForm').classList.add('hidden');
+    document.getElementById('clienteSel').classList.remove('hidden');
+  }
+  function salvarCliente() {
+    const nome = document.getElementById('inputClienteNome').value.trim();
+    const cnpj = document.getElementById('inputClienteCNPJ').value.trim();
+    if (!nome || !cnpj) return alert('Preencha nome e CNPJ do cliente.');
+    let arr = JSON.parse(localStorage.getItem('clientes') || '[]');
+    arr.push({ id: gerarId(), nome, cnpj });
+    localStorage.setItem('clientes', JSON.stringify(arr));
+    voltarSelecaoCliente();
+    carregarClientes(arr[arr.length - 1].id);
+  }
+  function carregarClientes(sel = '') {
+    const selEl = document.getElementById('clienteSelect');
+    selEl.innerHTML = '<option value="">-- Selecione --</option>';
+    const arr = JSON.parse(localStorage.getItem('clientes') || '[]');
+    arr.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id;
+      o.textContent = `${c.nome} — ${c.cnpj}`;
+      selEl.appendChild(o);
+    });
+    if (sel) selEl.value = sel;
+  }
+  function excluirClienteMinimalista() {
+    const sel = document.getElementById('clienteSelect');
+    const id = sel.value;
+    if (!id) return alert('Selecione um cliente para excluir.');
+    if (!confirm('Tem certeza que deseja excluir este cliente?')) {
+      return;
+    }
+    let arr = JSON.parse(localStorage.getItem('clientes') || '[]');
+    arr = arr.filter(c => c.id !== id);
+    localStorage.setItem('clientes', JSON.stringify(arr));
+    carregarClientes();
+  }
+
+  // --- REMESSA ---
+  function mostrarFormRemessa() {
+    document.getElementById('remessaForm').classList.remove('hidden');
+    document.getElementById('remessaSel').classList.add('hidden');
+  }
+  function voltarSelecaoRemessa() {
+    document.getElementById('inputRemessaNome').value = '';
+    document.getElementById('inputRemessaCNPJ').value = '';
+    document.getElementById('remessaForm').classList.add('hidden');
+    document.getElementById('remessaSel').classList.remove('hidden');
+  }
+  function salvarRemessa() {
+    const nome = document.getElementById('inputRemessaNome').value.trim();
+    const cnpj = document.getElementById('inputRemessaCNPJ').value.trim();
+    if (!nome || !cnpj) return alert('Preencha nome e CNPJ da remessa.');
+    let arr = JSON.parse(localStorage.getItem('remessas') || '[]');
+    arr.push({ id: gerarId(), nome, cnpj });
+    localStorage.setItem('remessas', JSON.stringify(arr));
+    voltarSelecaoRemessa();
+    carregarRemessas(arr[arr.length - 1].id);
+  }
+  function carregarRemessas(sel = '') {
+    const selEl = document.getElementById('remessaSelect');
+    selEl.innerHTML = '<option value="">-- Selecione --</option>';
+    const arr = JSON.parse(localStorage.getItem('remessas') || '[]');
+    arr.forEach(r => {
+      const o = document.createElement('option');
+      o.value = r.id;
+      o.textContent = `${r.nome} — ${r.cnpj}`;
+      selEl.appendChild(o);
+    });
+    if (sel) selEl.value = sel;
+  }
+  function excluirRemessaMinimalista() {
+    const sel = document.getElementById('remessaSelect');
+    const id = sel.value;
+    if (!id) return alert('Selecione uma remessa para excluir.');
+    if (!confirm('Tem certeza que deseja excluir esta remessa?')) {
+      return;
+    }
+    let arr = JSON.parse(localStorage.getItem('remessas') || '[]');
+    arr = arr.filter(r => r.id !== id);
+    localStorage.setItem('remessas', JSON.stringify(arr));
+    carregarRemessas();
+  }
+
+  // --- PRODUTOS NO PEDIDO ---
+  let produtosCorrente = [];
+
+  function adicionarProduto() {
+    const sel = document.getElementById('produtoSelect');
+    const id = sel.value;
+    const produtoObj = JSON.parse(localStorage.getItem('produtosCadastrados') || '[]').find(p => p.id === id);
+    const titulo = produtoObj ? produtoObj.nome : '';
+    const kg = parseFloat(document.getElementById('kgProduto').value);
+    const preco = parseFloat(document.getElementById('precoProduto').value);
+    const obs = document.getElementById('obsProduto').value.trim();
+    if (!titulo || isNaN(kg) || isNaN(preco)) {
+      return alert('Selecione um produto e preencha peso e preço corretamente.');
+    }
+    produtosCorrente.push({ titulo, kg, preco, obs });
+    renderizarProdutos();
+    document.getElementById('produtoSelect').value = '';
+    ['kgProduto', 'precoProduto', 'obsProduto'].forEach(id => document.getElementById(id).value = '');
+  }
+
+  function renderizarProdutos() {
+    const div = document.getElementById('produtosCorrente');
+    div.innerHTML = '';
+    produtosCorrente.forEach((p, i) => {
+      const el = document.createElement('div');
+      el.className = 'produto-item';
+      el.innerHTML =
+        `<strong>${p.titulo}</strong><br>
+        Peso: ${p.kg} kg<br>
+        Preço/kg: R$ ${p.preco.toFixed(2)}<br>
+        Total: R$ ${(p.kg * p.preco).toFixed(2)}<br>
+        ${p.obs ? `Obs: ${p.obs}<br>` : ''}
+        <div style="margin-top:6px;">
+          <button onclick="editarProduto(${i})">Editar</button>
+          <button class="btn-danger" onclick="removerProduto(${i})">Remover</button>
+        </div>`;
+      div.appendChild(el);
+    });
+  }
+
+  function editarProduto(i) {
+    const p = produtosCorrente[i];
+    const produtoSelect = document.getElementById('produtoSelect');
+    const prodCadastrado = JSON.parse(localStorage.getItem('produtosCadastrados') || '[]').find(pcd => pcd.nome === p.titulo);
+    if(prodCadastrado) {
+      produtoSelect.value = prodCadastrado.id;
+    } else {
+      produtoSelect.value = '';
+    }
+    document.getElementById('kgProduto').value = p.kg;
+    document.getElementById('precoProduto').value = p.preco;
+    document.getElementById('obsProduto').value = p.obs || '';
+    produtosCorrente.splice(i, 1);
+    renderizarProdutos();
+  }
+
+  function removerProduto(i) {
+    produtosCorrente.splice(i, 1);
+    renderizarProdutos();
+  }
+
+  // --- PEDIDOS ---
+  function salvarPedido() {
+    const clienteId = document.getElementById('clienteSelect').value;
+    const remessaId = document.getElementById('remessaSelect').value;
+    const prazo = document.getElementById('prazoPagamento').value.trim();
+    if (!clienteId || !remessaId || produtosCorrente.length === 0) {
+      return alert('Selecione cliente, remessa e adicione ao menos um produto.');
+    }
+    let arr = JSON.parse(localStorage.getItem('pedidos') || '[]');
+    arr.push({
+      id: gerarId(),
+      clienteId,
+      remessaId,
+      produtos: produtosCorrente,
+      prazo,
+      data: new Date().toLocaleString()
+    });
+    localStorage.setItem('pedidos', JSON.stringify(arr));
+    limparPedidoAtual();
+    carregarHistorico();
+  }
+
+  function limparPedidoAtual() {
+  produtosCorrente = [];
+  renderizarProdutos();
+  document.getElementById('clienteSelect').value = '';
+  document.getElementById('remessaSelect').value = '';
+  document.getElementById('prazoPagamento').value = '';
+  
+  // Limpar busca de produto
+  document.getElementById('produtoBusca').value = '';
+  const sugestoes = document.getElementById('produtoSugestoes');
+  sugestoes.innerHTML = '';
+  sugestoes.classList.add('hidden');
+
+  }
+  function carregarHistorico() {
+    const div = document.getElementById('historicoPedidos');
+    div.innerHTML = '';
+    const pedidos = JSON.parse(localStorage.getItem('pedidos') || '[]');
+    const clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
+    const remessas = JSON.parse(localStorage.getItem('remessas') || '[]');
+    pedidos.slice().reverse().forEach(p => {
+      const cli = clientes.find(c => c.id === p.clienteId);
+      const rem = remessas.find(r => r.id === p.remessaId);
+      let produtosTexto = p.produtos.map((prod, i) => {
+        return `${i+1}. ${prod.titulo}\nPeso: ${prod.kg} kg\nPreço/kg: R$${prod.preco.toFixed(2)}${prod.obs ? `\nObs: ${prod.obs}` : ''}`;
+      }).join('\n\n');
+      let detalhes = `🧾 PEDIDO - ${p.data}\n\n` +
+                     `👤 CLIENTE:\nNome: ${cli ? cli.nome : '?'}\nCNPJ: ${cli ? cli.cnpj : '?'}\n\n` +
+                     `📦 REMESSA:\nNome: ${rem ? rem.nome : '?'}\nCNPJ: ${rem ? rem.cnpj : '?'}\n\n` +
+                     `📅 PRAZO DE PAGAMENTO:\n${p.prazo || '-'}\n\n` +
+                     `📋 PRODUTOS:\n${produtosTexto}`;
+      const el = document.createElement('div');
+      el.className = 'pedido';
+      el.innerHTML = `<pre>${detalhes}</pre>`;
+      const btns = document.createElement('div');
+      btns.className = 'botoes';
+      const copy = document.createElement('button');
+      copy.textContent = '📋 Copiar';
+      copy.onclick = () => {
+        navigator.clipboard.writeText(detalhes);
+        alert('Pedido copiado!');
+      };
+const zap = document.createElement('button');
+zap.textContent = '📱 WhatsApp';
+zap.onclick = () => {
+  const mensagem = encodeURIComponent(detalhes);
+  const url = `https://wa.me/?text=${mensagem}`;
+  window.open(url, '_blank');
+};
+
+      const mail = document.createElement('button');
+      mail.textContent = '📧 Email';
+      mail.onclick = () => {
+        window.location.href =
+          `mailto:?subject=${encodeURIComponent('Pedido')}` +
+          `&body=${encodeURIComponent(detalhes)}`;
+      };
+      const del = document.createElement('button');
+      del.textContent = '🗑️ Excluir';
+      del.className = 'btn-danger';
+      del.onclick = () => {
+        let a = JSON.parse(localStorage.getItem('pedidos') || '[]');
+        a = a.filter(x => x.id !== p.id);
+        localStorage.setItem('pedidos', JSON.stringify(a));
+        carregarHistorico();
+      };
+      btns.append(copy, zap, mail, del);
+      el.appendChild(btns);
+      div.appendChild(el);
+    });
+  }
+  // Inicializa dados ao carregar a página
+function buscarProduto() {
+  const termo = document.getElementById('produtoBusca').value.trim().toLowerCase();
+  const sugestoesDiv = document.getElementById('produtoSugestoes');
+  if (!termo) {
+    sugestoesDiv.classList.add('hidden');
+    sugestoesDiv.innerHTML = '';
+    return;
+  }
+  const produtos = JSON.parse(localStorage.getItem('produtosCadastrados') || '[]');
+  const resultados = produtos.filter(p => p.nome.toLowerCase().includes(termo));
+  sugestoesDiv.innerHTML = '';
+  if (resultados.length === 0) {
+    sugestoesDiv.classList.add('hidden');
+    return;
+  }
+  resultados.forEach(prod => {
+    const div = document.createElement('div');
+    div.textContent = prod.nome;
+    div.onclick = () => {
+      document.getElementById('produtoSelect').value = prod.id;
+      document.getElementById('produtoBusca').value = prod.nome;
+      sugestoesDiv.classList.add('hidden');
+      sugestoesDiv.innerHTML = '';
+    };
+    sugestoesDiv.appendChild(div);
+  });
+  sugestoesDiv.classList.remove('hidden');
+}
+
+  window.onload = () => {
+    carregarClientes();
+    carregarRemessas();
+    carregarProdutos();
+    carregarHistorico();
+  };
+</script>
+</body>
+</html>
+
